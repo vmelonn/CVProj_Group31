@@ -44,15 +44,15 @@ dataset/
 deli_1.py
 *.zip
 
-# Output files - allow outputs folder structure
-# outputs/*.ply
-# outputs/*.png
+# Output files - allow outputs folder
 *.png
 *.jpg
 *.jpeg
 
-# Project specific PLY files in root (moved to outputs/)
+# Project specific PLY files in root only (outputs/ folder is tracked)
 *.ply
+!outputs/
+!outputs/*.ply
 !outputs/
 
 # Logs
