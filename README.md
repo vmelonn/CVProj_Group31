@@ -10,7 +10,8 @@ A Python implementation of Structure from Motion reconstruction from image seque
 
 This project implements a complete Structure from Motion pipeline organized by weekly deliverables:
 
-- **Week 1**: Feature Matching and Two-View Reconstruction
+- **Week 1**: Feature Matching
+- **Week 2**: Two-View Reconstruction
 - **Week 3**: Multi-View SfM with Incremental Image Addition and Bundle Adjustment
 
 ## Project Structure
@@ -47,7 +48,7 @@ CV Proj/
    pip install -r requirements.txt
    ```
 
-## Week 1 Deliverable: Feature Matching & Two-View Reconstruction
+## Week 1 Deliverable: Feature Matching
 
 ### Features
 
@@ -61,7 +62,11 @@ CV Proj/
    - Lowe's ratio test for match filtering
    - Visualization of feature matches
 
-3. **Two-View Reconstruction**
+## Week 2 Deliverable: Two-View Reconstruction
+
+### Features
+
+1. **Two-View Reconstruction**
    - Essential matrix estimation
    - Camera pose recovery
    - 3D point triangulation with cheirality check
@@ -79,6 +84,21 @@ CV Proj/
 - `get_matches()` - Get matched points as numpy arrays
 - `draw_matches()` - Visualize matches
 
+**`src/visualization.py`:**
+- `display_image_grid()` - Display grid of images
+- `visualize_matches()` - Visualize feature matches
+
+### Usage (Week 1)
+
+```bash
+# Run feature matching
+python main.py --mode features
+```
+
+## Week 2 Deliverable: Two-View Reconstruction
+
+### Functions (Week 2)
+
 **`src/geometry.py`:**
 - `build_intrinsic_matrix()` - Create K matrix from image dimensions
 - `triangulate_and_check()` - Triangulate with cheirality check
@@ -90,17 +110,12 @@ CV Proj/
 - `two_view_reconstruction()` - Perform two-view reconstruction
 
 **`src/visualization.py`:**
-- `display_image_grid()` - Display grid of images
-- `visualize_matches()` - Visualize feature matches
 - `plot_3d_pointcloud()` - 3D point cloud visualization
 - `plot_2d_projections()` - 2D projections of point cloud
 
-### Usage (Week 1)
+### Usage (Week 2)
 
 ```bash
-# Run feature matching
-python main.py --mode features
-
 # Run two-view reconstruction
 python main.py --mode two-view
 ```
@@ -238,7 +253,7 @@ R, t, success = estimate_pose_pnp(points_3d_matched, points_2d_matched, K)
 
 The pipeline generates the following output files in the `outputs/` directory:
 
-- `pointcloud.ply`: Week 1 - Two-view reconstruction point cloud
+- `pointcloud.ply`: Week 2 - Two-view reconstruction point cloud
 - `incremental_pointcloud.ply`: Week 3 - Incremental SFM point cloud
 - `matches_*.png`: Feature match visualizations
 
@@ -289,7 +304,7 @@ python view_pointcloud.py outputs/incremental_pointcloud.ply --figsize 20 15
 - `pose_from_rvec_tvec()`: Convert rvec,tvec to R,t
 
 ### `src.reconstruction`
-**Week 1 Functions:**
+**Week 2 Functions:**
 - `evaluate_pair()`: Evaluate image pair for reconstruction quality
 - `find_best_pair()`: Search for optimal image pair
 - `two_view_reconstruction()`: Perform two-view reconstruction
