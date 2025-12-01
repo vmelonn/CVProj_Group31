@@ -242,6 +242,21 @@ The pipeline generates the following output files in the `outputs/` directory:
 - `incremental_pointcloud.ply`: Week 3 - Incremental SFM point cloud
 - `matches_*.png`: Feature match visualizations
 
+## Viewing Point Clouds
+
+Use the `view_pointcloud.py` script to visualize PLY files:
+
+```bash
+# View incremental point cloud
+python view_pointcloud.py outputs/incremental_pointcloud.ply
+
+# View two-view reconstruction point cloud
+python view_pointcloud.py outputs/pointcloud.ply --title "Two-View Reconstruction"
+
+# Custom figure size
+python view_pointcloud.py outputs/incremental_pointcloud.ply --figsize 20 15
+```
+
 ## Dependencies
 
 - **opencv-python**: Computer vision operations
