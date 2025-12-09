@@ -41,6 +41,7 @@ venv.bak/
 
 # Dataset and data files
 dataset/
+Dataset/
 deli_1.py
 *.zip
 
