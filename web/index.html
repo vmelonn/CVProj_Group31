@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CS436 Final Viewer (Corrected)</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
+        
+        #overlay-img {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; z-index: 5; opacity: 0; 
+            transition: opacity 0.5s ease; pointer-events: none;
+        }
+
+        #close-btn {
+            position: absolute; bottom: 30px; left: 50%; 
+            transform: translateX(-50%); padding: 12px 24px;
+            background-color: rgba(255, 68, 68, 0.9);
+            color: white; font-weight: bold; font-size: 16px;
+            border: 2px solid white; border-radius: 30px;
+            cursor: pointer; z-index: 20; display: none;
+        }
+
+        #ui { 
+            position: absolute; top: 20px; left: 20px; 
+            color: white; background: rgba(0,0,0,0.7); 
+            padding: 15px; border-radius: 8px; 
+            pointer-events: auto; z-index: 10; 
+        }
+    </style>
+    
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <img id="overlay-img" src="" alt="">
+    <button id="close-btn" onclick="forceClose()">✖ Close Photo</button>
+
+    <div id="ui">
+        <h3>Final Submission</h3>
+        <p>• <b>Click Red Dot:</b> Fly to Viewpoint</p>
+        <p>• <b>Drag Screen:</b> Look Around</p>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { PLYLoader } from 'three/addons/loaders/PLYLoader.js';
+
+        // GLOBAL HELPERS
+        window.forceClose = function() {
+            document.getElementById('overlay-img').style.opacity = 0;
+            document.getElementById('close-btn').style.display = 'none';
+        };
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x111111);
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 3, 3); // Start closer
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.addEventListener('start', () => window.forceClose());
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        const cameraNodes = [];
+        let isMoving = false;
+
+        // 1. Load Room
+        new PLYLoader().load('./merged_room.ply', (geometry) => {
+            const material = new THREE.PointsMaterial({ size: 0.12, vertexColors: true });
+            const points = new THREE.Points(geometry, material);
+            scene.add(points);
+            geometry.computeBoundingBox();
+            controls.target.copy(geometry.boundingBox.getCenter(new THREE.Vector3()));
+        });
+
+        // 2. Load Cameras (WITH MATH FIX)
+        fetch('./all_cameras.json')
+            .then(res => res.json())
+            .then(data => {
+                const geom = new THREE.SphereGeometry(0.25, 16, 16); // Nice size
+                const mat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+                
+                data.cameras.forEach((cam, i) => {
+                    const node = new THREE.Mesh(geom, mat.clone());
+                    
+                    // --- MATH FIX START ---
+                    // 1. Read the Matrix
+                    const R = new THREE.Matrix3().fromArray(cam.rotation.flat());
+                    const t = new THREE.Vector3().fromArray(cam.translation);
+                    
+                    // 2. Detect the baked-in Scale Factor
+                    // The length of the first column tells us the scale
+                    const elements = cam.rotation.flat();
+                    const scaleSq = elements[0]*elements[0] + elements[1]*elements[1] + elements[2]*elements[2];
+                    const scale = Math.sqrt(scaleSq);
+
+                    // 3. Calculate Position (and undo the double-scaling)
+                    // Normal formula: pos = -R^T * t
+                    // But R is scaled by 's', so R^T is scaled by 's'. 
+                    // This multiplies the error. We must divide by scale^2.
+                    const pos = t.clone().applyMatrix3(R.transpose()).negate();
+                    if (scale > 1.01 || scale < 0.99) {
+                        pos.divideScalar(scale * scale); 
+                    }
+                    // --- MATH FIX END ---
+
+                    node.position.copy(pos);
+
+                    let safePath = "";
+                    if (cam.filename) {
+                        safePath = cam.filename.replace(/\\/g, "/"); 
+                        safePath = encodeURI(safePath).replace('#', '%23');
+                    }
+
+                    node.userData = { targetPos: pos, filename: safePath };
+                    scene.add(node);
+                    cameraNodes.push(node);
+                });
+            });
+
+        // 3. Click Logic
+        window.addEventListener('mousedown', (e) => {
+            if (isMoving || e.target.closest('#close-btn')) return;
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+
+            const hits = raycaster.intersectObjects(cameraNodes);
+            if (hits.length > 0) flyToNode(hits[0].object);
+        });
+
+        function flyToNode(node) {
+            isMoving = true;
+            window.forceClose();
+
+            const startPos = camera.position.clone();
+            const targetPos = node.userData.targetPos.clone();
+            const startTime = performance.now();
+            const duration = 1200;
+
+            function loop(now) {
+                const elapsed = now - startTime;
+                const progress = Math.min(elapsed / duration, 1.0);
+                const ease = progress * (2 - progress);
+                camera.position.lerpVectors(startPos, targetPos, ease);
+
+                if (progress < 1.0) {
+                    requestAnimationFrame(loop);
+                } else {
+                    isMoving = false;
+                    controls.target.copy(targetPos).add(new THREE.Vector3(0,0,-1));
+                    if (node.userData.filename) {
+                        const img = document.getElementById('overlay-img');
+                        img.src = node.userData.filename;
+                        img.style.opacity = 0.85;
+                        document.getElementById('close-btn').style.display = 'block';
+                    }
+                }
+            }
+            requestAnimationFrame(loop);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

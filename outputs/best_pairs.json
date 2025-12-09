@@ -1,0 +1,18 @@
+{
+    "Wall 1": [
+        "Dataset/Wall 1/20251209_205645.jpg",
+        "Dataset/Wall 1/20251209_205646.jpg"
+    ],
+    "Wall 2": [
+        "Dataset/Wall 2/20251209_205702.jpg",
+        "Dataset/Wall 2/20251209_205704.jpg"
+    ],
+    "Wall 3": [
+        "Dataset/Wall 3/20251209_205800.jpg",
+        "Dataset/Wall 3/20251209_205801.jpg"
+    ],
+    "Wall 4": [
+        "Dataset/Wall 4/20251209_205830.jpg",
+        "Dataset/Wall 4/20251209_205832.jpg"
+    ]
+}
